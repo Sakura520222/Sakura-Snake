@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>贪吃蛇游戏 - 由Firefly设计</title>
+
+    <!-- 社交媒体元标签 - 用于分享时显示预览信息 -->
+    <meta property="og:title" content="贪吃蛇游戏-由Firefly设计" />
+    <meta property="og:description" content="经典贪吃蛇游戏，支持4种难度（含疯狂模式），适配手机与桌面设备，操作简单易上手！" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://tcs.firefly520.top" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="贪吃蛇游戏" />
+    <meta name="twitter:description" content="经典贪吃蛇游戏，支持4种难度（含疯狂模式），适配手机与桌面设备，操作简单易上手！" />
+    
+    <!-- 引入游戏样式表 -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div class="game-container">
+        <h1>贪吃蛇游戏</h1>
+
+        <!-- 玩法说明按钮 -->
+        <div class="instructions-button-container">
+            <button id="instructions-btn">玩法说明</button>
+        </div>
+
+        <!-- 游戏信息区域 - 包含得分显示、难度选择和模式切换 -->
+        <div class="game-info">
+            <span>得分: <span id="score">0</span></span>
+            <span>时间: <span id="timer">00:00</span></span>
+            <div class="difficulty-buttons">
+                <button class="difficulty-btn" data-level="1">难度1</button>
+                <button class="difficulty-btn" data-level="2">难度2</button>
+                <button class="difficulty-btn" data-level="3">难度3</button>
+                <button class="difficulty-btn" data-level="4">疯狂模式</button>
+            </div>
+
+            <div class="mode-buttons">
+                <button class="mode-btn active" data-mode="normal">正常模式</button>
+                <button class="mode-btn" data-mode="wallThrough">穿墙模式</button>
+            </div>
+            <div class="speed-control">
+                <label for="speed-slider">速度:</label>
+                <input type="range" id="speed-slider" min="50" max="300" value="150">
+                <span id="speed-value">150</span>
+            </div>
+            <button id="start-btn">开始游戏</button>
+        </div>
+
+        <!-- 游戏画布 - 用于渲染贪吃蛇游戏画面 -->
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+    </div>
+    
+
+    <!-- 移动设备控制按钮 - 在小屏幕设备上显示方向控制 -->
+    <div class="mobile-controls">
+        <button class="control-btn up">↑</button>
+        <button class="control-btn left">←</button>
+        <button class="control-btn right">→</button>
+        <button class="control-btn down">↓</button>
+    </div>
+    
+
+    <!-- 引入游戏主逻辑脚本 -->
+    <script src="game.js"></script>
+</body>
+</html>
