@@ -638,7 +638,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function aiEscape() {
         const head = snake[0];
         const isWallThrough = gameMode === 'wallThrough';
-        const isInLoop = isInLoop();
+        const inLoop = isInLoop();
         const directions = [
             {dx: 0, dy: -1, dir: 'up'},
             {dx: 1, dy: 0, dir: 'right'},
@@ -673,7 +673,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const originalDirectionHasCollision = snake.some(s => 
                     s.x === (head.x + dir.dx) && s.y === (head.y + dir.dy)
                 );
-                const loopBonus = isInLoop && wrapped ? 100 : 0;
+                const loopBonus = inLoop && wrapped ? 100 : 0;
                 const wrapBonus = wrapped ? (originalDirectionHasCollision ? 50 : 30) + loopBonus : 0;
                 return {
                     ...dir,
