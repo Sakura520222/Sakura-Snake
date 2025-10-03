@@ -1332,7 +1332,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (document.activeElement.tagName !== 'BUTTON' && 
                     document.activeElement.tagName !== 'INPUT' && 
                     document.activeElement.tagName !== 'TEXTAREA') {
-                    gameRunning ? pauseGame() : startGame();
+                    if (gameRunning) {
+                        pauseGame();
+                    } else {
+                        if (gameInitialized) {
+                            resumeGame();
+                        } else {
+                            startGame();
+                        }
+                    }
                 }
                 break;
         }
