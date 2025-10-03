@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let gameMode = 'normal';
     const dangerousPositions = new Set();
+    const dangerousPositionsTimestamps = new Map(); // 记录危险位置的时间戳
     const safePathPatterns = [];
     const MAX_DANGEROUS_RECORDS = 20;
     const positionHistory = [];
@@ -117,8 +118,9 @@ document.addEventListener('DOMContentLoaded', () => {
         let nx = x;
         let ny = y;
         if (gameMode === 'wallThrough') {
-            nx = (x + gridSize) % gridSize;
-            ny = (y + gridSize) % gridSize;
+            // 修复穿墙模式边界检测：正确处理负数和超出边界的情况
+            nx = ((x % gridSize) + gridSize) % gridSize;
+            ny = ((y % gridSize) + gridSize) % gridSize;
         } else {
             if (x < 0 || x >= gridSize || y < 0 || y >= gridSize) return false;
         }
@@ -287,37 +289,40 @@ document.addEventListener('DOMContentLoaded', () => {
         return { snake: tempSnake, foods: tempFoods };
     }
     
-    /** A*路径规划算法（恢复原始核心） */
+    /** A*路径规划算法（优化性能版） */
     function aStarPath(start, target, considerWallThrough = true, maxSteps = Infinity) {
         if (start.x === target.x && start.y === target.y) return [];
         const isStarving = Date.now() - lastFoodTime > FORCE_FOOD_TIMEOUT;
         
-        const openSet = new Set([`${start.x},${start.y}`]);
+        // 使用优先队列优化性能
+        const openSet = new Map();
         const closedSet = new Set();
         const cameFrom = new Map();
         const gScore = new Map([[`${start.x},${start.y}`, 0]]);
         const heuristic = gameMode === 'wallThrough' ? getWrappedDistance(start, target) : getHeuristic(start, target);
         const fScore = new Map([[`${start.x},${start.y}`, heuristic]]);
         
+        // 优先队列：按fScore排序
+        const priorityQueue = [];
+        const addToQueue = (key, f) => {
+            priorityQueue.push({key, f});
+            priorityQueue.sort((a, b) => a.f - b.f);
+        };
+        
+        const startKey = `${start.x},${start.y}`;
+        openSet.set(startKey, true);
+        addToQueue(startKey, heuristic);
+        
         let steps = 0;
-        while (openSet.size > 0 && steps < maxSteps) {
-            let current = null;
-            let minF = Infinity;
-            for (const key of openSet) {
-                const f = fScore.get(key) || Infinity;
-                if (f < minF) {
-                    minF = f;
-                    current = key;
-                }
-            }
-            if (!current) break;
+        while (priorityQueue.length > 0 && steps < maxSteps) {
+            const {key: current} = priorityQueue.shift();
+            openSet.delete(current);
             
             const [x, y] = current.split(',').map(Number);
             if (x === target.x && y === target.y) {
                 return reconstructPath(cameFrom, current);
             }
             
-            openSet.delete(current);
             closedSet.add(current);
             steps++;
             
@@ -413,8 +418,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     const h = gameMode === 'wallThrough' && considerWallThrough
                         ? getWrappedDistance({x: nx, y: ny}, target) 
                         : getHeuristic({x: nx, y: ny}, target);
-                    fScore.set(neighborKey, tentativeGScore + h);
-                    openSet.add(neighborKey);
+                    const newFScore = tentativeGScore + h;
+                    fScore.set(neighborKey, newFScore);
+                    
+                    if (!openSet.has(neighborKey)) {
+                        openSet.set(neighborKey, true);
+                        addToQueue(neighborKey, newFScore);
+                    } else {
+                        // 更新队列中的节点优先级
+                        const index = priorityQueue.findIndex(item => item.key === neighborKey);
+                        if (index !== -1) {
+                            priorityQueue[index].f = newFScore;
+                            priorityQueue.sort((a, b) => a.f - b.f);
+                        }
+                    }
                 }
             }
         }
@@ -930,6 +947,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const isWallThrough = gameMode === 'wallThrough';
         const snakeLength = snake.length;
         
+        // 修复Bug 2: 添加决策计数器防止无限循环
+        let decisionCount = 0;
+        const MAX_DECISION_ATTEMPTS = 10;
+        
         // 紧急自撞规避
         const nextHeadX = head.x + nextDx;
         const nextHeadY = head.y + nextDy;
@@ -1047,6 +1068,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         } else {
+            // 修复Bug 2: 添加安全退出机制
+            decisionCount++;
+            if (decisionCount >= MAX_DECISION_ATTEMPTS) {
+                // 如果多次尝试都失败，选择随机安全方向
+                const safeDirections = [
+                    {dx: 0, dy: -1, dir: 'up'},
+                    {dx: 1, dy: 0, dir: 'right'},
+                    {dx: 0, dy: 1, dir: 'down'},
+                    {dx: -1, dy: 0, dir: 'left'}
+                ].filter(dir => {
+                    const nx = (head.x + dir.dx + gridSize) % gridSize;
+                    const ny = (head.y + dir.dy + gridSize) % gridSize;
+                    return isSafe(nx, ny);
+                });
+                
+                if (safeDirections.length > 0) {
+                    const randomDir = safeDirections[Math.floor(Math.random() * safeDirections.length)];
+                    setNextDirection(randomDir.dir);
+                    return;
+                }
+            }
             aiEscape();
         }
     }
@@ -1180,7 +1222,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // 自撞检测
         for (let i = 1; i < snake.length; i++) {
             if (head.x === snake[i].x && head.y === snake[i].y) {
-                dangerousPositions.add(`${head.x},${head.y}`);
+                const posKey = `${head.x},${head.y}`;
+                dangerousPositions.add(posKey);
+                dangerousPositionsTimestamps.set(posKey, Date.now()); // 记录时间戳
                 trimDangerousPositions();
                 return true;
             }
@@ -1189,7 +1233,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // 边界碰撞检测
         if (gameMode === 'normal') {
             if (head.x < 0 || head.x >= gridSize || head.y < 0 || head.y >= gridSize) {
-                dangerousPositions.add(`${head.x},${head.y}`);
+                const posKey = `${head.x},${head.y}`;
+                dangerousPositions.add(posKey);
+                dangerousPositionsTimestamps.set(posKey, Date.now()); // 记录时间戳
                 trimDangerousPositions();
                 return true;
             }
@@ -1198,13 +1244,39 @@ document.addEventListener('DOMContentLoaded', () => {
         return false;
     }
     
-    /** 限制危险位置记录数量 */
+    /** 限制危险位置记录数量（改进版） */
     function trimDangerousPositions() {
+        // 清理过期记录：超过30秒的危险位置记录
+        const currentTime = Date.now();
+        const expiredPositions = [];
+        
+        for (const pos of dangerousPositions) {
+            const [x, y] = pos.split(',').map(Number);
+            const isExpired = currentTime - (dangerousPositionsTimestamps.get(pos) || 0) > 30000; // 30秒过期
+            if (isExpired) {
+                expiredPositions.push(pos);
+            }
+        }
+        
+        // 删除过期记录
+        for (const pos of expiredPositions) {
+            dangerousPositions.delete(pos);
+            dangerousPositionsTimestamps.delete(pos);
+        }
+        
+        // 如果仍然超过最大记录数，删除最旧的记录
         if (dangerousPositions.size > MAX_DANGEROUS_RECORDS) {
-            const keys = Array.from(dangerousPositions);
+            const sortedPositions = Array.from(dangerousPositions).sort((a, b) => {
+                const timeA = dangerousPositionsTimestamps.get(a) || 0;
+                const timeB = dangerousPositionsTimestamps.get(b) || 0;
+                return timeA - timeB;
+            });
+            
             const excess = dangerousPositions.size - MAX_DANGEROUS_RECORDS;
             for (let i = 0; i < excess; i++) {
-                dangerousPositions.delete(keys[i]);
+                const pos = sortedPositions[i];
+                dangerousPositions.delete(pos);
+                dangerousPositionsTimestamps.delete(pos);
             }
         }
     }
@@ -1304,16 +1376,49 @@ document.addEventListener('DOMContentLoaded', () => {
         stopTimer();
     }
     
-    // 移动端控制
+    // 移动端控制（优化响应速度）
     document.querySelectorAll('.control-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        // 添加触摸事件支持，提高移动端响应速度
+        const handleControl = (e) => {
             if (!gameRunning) return;
-            switch(e.target.classList[1]) {
+            e.preventDefault(); // 防止默认行为，提高响应速度
+            
+            // 立即响应，不等待事件冒泡
+            const direction = e.target.classList[1];
+            switch(direction) {
                 case 'up': if (dy === 0) { nextDx = 0; nextDy = -1; } break;
                 case 'down': if (dy === 0) { nextDx = 0; nextDy = 1; } break;
                 case 'left': if (dx === 0) { nextDx = -1; nextDy = 0; } break;
                 case 'right': if (dx === 0) { nextDx = 1; nextDy = 0; } break;
             }
+            
+            // 立即重绘，提高响应速度
+            draw();
+        };
+        
+        // 同时支持点击和触摸事件
+        btn.addEventListener('click', handleControl);
+        btn.addEventListener('touchstart', handleControl, { passive: false });
+        
+        // 添加视觉反馈
+        btn.addEventListener('mousedown', () => {
+            btn.style.transform = 'scale(0.95)';
+            btn.style.transition = 'transform 0.1s';
+        });
+        btn.addEventListener('mouseup', () => {
+            btn.style.transform = 'scale(1)';
+        });
+        btn.addEventListener('mouseleave', () => {
+            btn.style.transform = 'scale(1)';
+        });
+        
+        // 触摸设备的视觉反馈
+        btn.addEventListener('touchstart', () => {
+            btn.style.transform = 'scale(0.95)';
+            btn.style.transition = 'transform 0.1s';
+        });
+        btn.addEventListener('touchend', () => {
+            btn.style.transform = 'scale(1)';
         });
     });
     
@@ -1516,6 +1621,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     /** 开始计时器 */
     function startTimer() {
+        // 修复Bug 1: 确保计时器准确计算已过时间
+        if (timerInterval) {
+            clearInterval(timerInterval);
+        }
         startTime = Date.now() - elapsedTime; // 保持已过时间
         timerInterval = setInterval(() => {
             elapsedTime = Date.now() - startTime;
