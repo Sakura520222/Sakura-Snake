@@ -266,6 +266,30 @@ h1 {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
+/* 电脑端布局 - 确保设置界面在右侧 */
+@media (min-width: 768px) {
+    .main-content {
+        flex-direction: row;
+        justify-content: center;
+        align-items: flex-start;
+    }
+    
+    .canvas-container {
+        order: 1; /* 电脑端：画布在左侧 */
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .game-info {
+        order: 2; /* 电脑端：设置界面在右侧 */
+        min-width: 280px;
+        max-width: 320px;
+        margin-left: 30px;
+    }
+}
+
 @media (max-width: 600px) {
     .game-container {
         max-width: 450px;
