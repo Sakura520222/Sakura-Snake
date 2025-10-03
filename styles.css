@@ -17,7 +17,7 @@ body {
 
 /* 游戏容器 */
 .game-container {
-    max-width: 450px;
+    max-width: 900px;
     width: 95%;
     margin: 20px auto;
     padding: 25px;
@@ -41,19 +41,37 @@ h1 {
     background-clip: text;
 }
 
+/* 主内容区域 - 水平布局 */
+.main-content {
+    display: flex;
+    flex-direction: row;
+    gap: 30px;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+/* 画布容器 */
+.canvas-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 /* 游戏信息区域 */
 .game-info {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding: 15px;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 0;
+    padding: 20px;
     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
     border-radius: 10px;
-    flex-wrap: wrap;
-    gap: 12px;
+    gap: 15px;
     border: 1px solid rgba(52, 152, 219, 0.2);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    min-width: 280px;
+    max-width: 320px;
 }
 
 /* 得分显示 */
@@ -70,7 +88,10 @@ h1 {
 /* 难度按钮 */
 .difficulty-buttons {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
+    width: 100%;
+    justify-content: space-between;
 }
 
 .difficulty-btn {
@@ -113,9 +134,10 @@ h1 {
 
 /* 模式切换按钮 */
 .mode-buttons {
-    display: inline-flex;
+    display: flex;
     gap: 8px;
-    margin-left: 10px;
+    width: 100%;
+    justify-content: space-between;
 }
 
 .mode-btn {
@@ -148,7 +170,7 @@ h1 {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-left: 10px;
+    width: 100%;
     background: rgba(52, 152, 219, 0.1);
     padding: 8px 12px;
     border-radius: 8px;
@@ -243,6 +265,20 @@ h1 {
 }
 
 @media (max-width: 600px) {
+    .game-container {
+        max-width: 450px;
+    }
+    
+    .main-content {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .game-info {
+        max-width: 100%;
+        min-width: auto;
+    }
+    
     .mobile-controls {
         display: grid;
         grid-template-areas:
@@ -483,4 +519,28 @@ h1 {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     transform: translateY(-2px);
     color: #3498db;
+}
+
+
+/* 开源项目链接 */
+.github-link {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 100;
+}
+
+.github-link a {
+    color: #3498db;
+    text-decoration: none;
+    font-weight: bold;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 5px 10px;
+    border-radius: 4px;
+    transition: all 0.3s;
+}
+
+.github-link a:hover {
+    background-color: rgba(255, 255, 255, 1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
