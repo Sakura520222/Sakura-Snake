@@ -159,26 +159,41 @@ document.addEventListener('DOMContentLoaded', () => {
         return sameDirCount >= LOOP_DETECTION_THRESHOLD;
     }
     
-    /** 计算穿墙移动的收益 */
+    /** 计算穿墙移动的收益（优化版） */
     function calculateWallThroughBenefit(originalPath, wrappedPath, head, target) {
         if (!originalPath.length || !wrappedPath.length) return 0;
         
         const originalCost = originalPath.length;
         const wrappedCost = wrappedPath.length;
         const distanceBenefit = originalCost / Math.max(wrappedCost, 1);
+        
+        // 计算穿墙后的位置优势
         const [wrapX, wrapY] = wrappedPath[0] ? wrappedPath[0].split(',').map(Number) : [head.x, head.y];
         const postWrapSpace = countFreeSpace({x: wrapX, y: wrapY}, snake, 4);
         const spaceBenefit = postWrapSpace / 10;
-        const isStarving = Date.now() - lastFoodTime > FORCE_FOOD_TIMEOUT;
-        const hungerBenefit = isStarving ? 2 : 0; // 紧急寻食时增加穿墙收益
-        const riskCost = isRiskyPath(wrappedPath) ? 0.5 : 0;
         
-        // 评估穿墙后的位置优势
+        const isStarving = Date.now() - lastFoodTime > FORCE_FOOD_TIMEOUT;
+        const hungerBenefit = isStarving ? 3 : 0; // 紧急寻食时大幅增加穿墙收益
+        
+        // 评估路径风险（考虑穿墙后的安全性）
+        const riskCost = isRiskyPath(wrappedPath) ? 0.8 : 0;
+        
+        // 评估穿墙后的战略位置
         const futureState = predictFutureState(wrappedPath, 3);
         const futureSpace = countFreeSpace(futureState.snake[0], futureState.snake, 5);
         const futureSpaceBenefit = futureSpace / 20;
         
-        return (distanceBenefit + spaceBenefit + hungerBenefit + futureSpaceBenefit - riskCost) * WALL_THROUGH_RISK_REDUCTION;
+        // 考虑蛇的长度对穿墙决策的影响
+        const snakeLengthFactor = snake.length > 20 ? 1.5 : snake.length > 10 ? 1.2 : 1.0;
+        
+        // 考虑目标位置与边界的距离
+        const targetToEdge = Math.min(target.x, gridSize-1-target.x, target.y, gridSize-1-target.y);
+        const targetEdgeBenefit = targetToEdge < 3 ? 0.5 : 0;
+        
+        // 综合收益计算
+        const baseBenefit = (distanceBenefit + spaceBenefit + hungerBenefit + futureSpaceBenefit + targetEdgeBenefit - riskCost) * WALL_THROUGH_RISK_REDUCTION;
+        
+        return baseBenefit * snakeLengthFactor;
     }
     
     /** 检测路径是否存在风险 */
@@ -313,16 +328,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 {dx: -1, dy: 0, dir: 'left'}
             ];
             
-            if (gameMode === 'wallThrough' && considerWallThrough && !isStarving) {
+            if (gameMode === 'wallThrough' && considerWallThrough) {
                 directions.sort((a, b) => {
                     const currentIsEdgeX = x === 0 || x === gridSize - 1;
                     const currentIsEdgeY = y === 0 || y === gridSize - 1;
-                    if (currentIsEdgeX && (a.dx !== 0 || b.dx !== 0)) {
-                        return Math.abs(b.dx) - Math.abs(a.dx);
+                    
+                    // 智能边界方向排序：考虑蛇的长度、饥饿状态和战略位置
+                    const snakeLength = snake.length;
+                    const isLongSnake = snakeLength > 15;
+                    
+                    // 长蛇在边界时优先考虑穿墙
+                    if ((currentIsEdgeX || currentIsEdgeY) && isLongSnake && !isStarving) {
+                        if (currentIsEdgeX && (a.dx !== 0 || b.dx !== 0)) {
+                            return Math.abs(b.dx) - Math.abs(a.dx);
+                        }
+                        if (currentIsEdgeY && (a.dy !== 0 || b.dy !== 0)) {
+                            return Math.abs(b.dy) - Math.abs(a.dy);
+                        }
                     }
-                    if (currentIsEdgeY && (a.dy !== 0 || b.dy !== 0)) {
-                        return Math.abs(b.dy) - Math.abs(a.dy);
+                    
+                    // 饥饿状态下优先直接路径
+                    if (isStarving) {
+                        const aIsWallThrough = (x + a.dx < 0 || x + a.dx >= gridSize || y + a.dy < 0 || y + a.dy >= gridSize);
+                        const bIsWallThrough = (x + b.dx < 0 || x + b.dx >= gridSize || y + b.dy < 0 || y + b.dy >= gridSize);
+                        if (aIsWallThrough && !bIsWallThrough) return 1;
+                        if (!aIsWallThrough && bIsWallThrough) return -1;
                     }
+                    
                     return 0;
                 });
             }
@@ -341,13 +373,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 const neighborKey = `${nx},${ny}`;
                 if (!isSafe(nx, ny) || closedSet.has(neighborKey)) continue;
                 
-                // 紧急寻食时降低穿墙成本
+                // 智能穿墙成本计算
                 const isWallThroughMove = (x + dir.dx < 0 || x + dir.dx >= gridSize || 
                                          y + dir.dy < 0 || y + dir.dy >= gridSize) && 
                                          gameMode === 'wallThrough' && considerWallThrough;
-                const stepCost = isStarving ? 
-                    (isWallThroughMove ? 0.5 : 1) : // 紧急时穿墙成本更低
-                    (isWallThroughMove ? 0.8 : 1);
+                
+                // 考虑蛇长度、饥饿状态和战略位置的综合成本
+                const snakeLength = snake.length;
+                const isLongSnake = snakeLength > 15;
+                const isVeryLongSnake = snakeLength > 25;
+                
+                let stepCost = 1;
+                if (isWallThroughMove) {
+                    if (isStarving) {
+                        // 饥饿状态下大幅降低穿墙成本
+                        stepCost = 0.3;
+                    } else if (isVeryLongSnake) {
+                        // 超长蛇在边界时穿墙成本更低
+                        stepCost = 0.4;
+                    } else if (isLongSnake) {
+                        // 长蛇在边界时穿墙成本适中
+                        stepCost = 0.6;
+                    } else {
+                        // 短蛇穿墙成本较高
+                        stepCost = 0.8;
+                    }
+                    
+                    // 考虑目标位置与边界的距离
+                    const targetToEdge = Math.min(target.x, gridSize-1-target.x, target.y, gridSize-1-target.y);
+                    if (targetToEdge < 3) {
+                        stepCost *= 0.7; // 目标在边界附近时进一步降低穿墙成本
+                    }
+                }
                 const tentativeGScore = (gScore.get(current) || 0) + stepCost;
                 
                 if (!openSet.has(neighborKey) || tentativeGScore < (gScore.get(neighborKey) || Infinity)) {
@@ -446,30 +503,47 @@ document.addEventListener('DOMContentLoaded', () => {
         return false;
     }
     
-    /** 食物评估系统（恢复原始A*核心评估） */
+    /** 食物评估系统（穿墙模式优化版） */
     function evaluateFood(food, head) {
         const isStarving = Date.now() - lastFoodTime > FORCE_FOOD_TIMEOUT;
-        // 紧急寻食时直接按距离排序
+        const snakeLength = snake.length;
+        const isWallThrough = gameMode === 'wallThrough';
+        
+        // 紧急寻食时智能评估
         if (isStarving) {
-            return -getWrappedDistance(head, food);
+            const normalDistance = getWrappedDistance(head, food);
+            const isLongSnake = snakeLength > 15;
+            
+            // 长蛇在饥饿状态下更倾向于穿墙
+            if (isWallThrough && isLongSnake) {
+                const normalPath = aStarPath(head, food, false);
+                const wrappedPath = aStarPath(head, food, true);
+                const useWallThrough = wrappedPath.length > 0 && 
+                                      calculateWallThroughBenefit(normalPath, wrappedPath, head, food) > WALL_THROUGH_THRESHOLD;
+                
+                if (useWallThrough) {
+                    return -wrappedPath.length * 0.8; // 穿墙路径有额外奖励
+                }
+            }
+            return -normalDistance;
         }
+        
         const normalPath = aStarPath(head, food, false);
         const wrappedPath = aStarPath(head, food, true);
-        const useWallThrough = gameMode === 'wallThrough' && 
+        const useWallThrough = isWallThrough && 
                               wrappedPath.length > 0 && 
                               calculateWallThroughBenefit(normalPath, wrappedPath, head, food) > WALL_THROUGH_THRESHOLD;
         
         const path = useWallThrough ? wrappedPath : normalPath;
         if (path.length === 0) return -1;
         
-        const snakeLength = snake.length;
-        const isWallThrough = gameMode === 'wallThrough';
         let baseScore = 0;
         
         const distance = isWallThrough ? getWrappedDistance(head, food) : path.length;
         const distanceScore = 100 / (distance + 1);
         const hasCollisionInNormal = isRiskyPath(normalPath, true);
-        const wallThroughBonus = useWallThrough ? (hasCollisionInNormal ? WALL_THROUGH_BONUS + 5 : WALL_THROUGH_BONUS) : 0;
+        const wallThroughBonus = useWallThrough ? (hasCollisionInNormal ? WALL_THROUGH_BONUS + 8 : WALL_THROUGH_BONUS) : 0;
+        
         const space = countFreeSpace(food, snake, 5);
         const spaceWeight = snakeLength < 15 ? 0.3 : 0.7;
         const spaceScore = space * spaceWeight;
@@ -479,7 +553,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const isNearEdge = head.x < 4 || head.x >= gridSize - 4 || 
                              head.y < 4 || head.y >= gridSize - 4;
             const snakeIsLong = snakeLength > 15;
-            positionScore = (isNearEdge && snakeIsLong) ? 30 : (isNearEdge ? 20 : 5);
+            const snakeIsVeryLong = snakeLength > 25;
+            
+            // 根据蛇长度调整边界位置评分
+            if (snakeIsVeryLong) {
+                positionScore = isNearEdge ? 40 : 10;
+            } else if (snakeIsLong) {
+                positionScore = isNearEdge ? 30 : 5;
+            } else {
+                positionScore = isNearEdge ? 15 : 0;
+            }
         } else if (snakeLength < 10) {
             const isCenter = Math.abs(food.x - gridSize/2) < 5 && Math.abs(food.y - gridSize/2) < 5;
             positionScore = isCenter ? 30 : -10;
@@ -487,18 +570,23 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const normalPathRisk = isRiskyPath(normalPath, true) ? 1 : 0;
         const safetyScore = isRiskyPath(path) 
-            ? (isWallThrough ? -100 : -200) 
-            : (useWallThrough && normalPathRisk ? 120 : 80);
+            ? (isWallThrough ? -80 : -200) 
+            : (useWallThrough && normalPathRisk ? 150 : 80);
         
-        return distanceScore + spaceScore + positionScore + safetyScore + wallThroughBonus;
+        // 考虑食物位置与边界的战略价值
+        const foodToEdge = Math.min(food.x, gridSize-1-food.x, food.y, gridSize-1-food.y);
+        const edgeBonus = isWallThrough && foodToEdge < 3 ? 25 : 0;
+        
+        return distanceScore + spaceScore + positionScore + safetyScore + wallThroughBonus + edgeBonus;
     }
     
-    /** 计算边界位置评分 */
+    /** 计算边界位置评分（穿墙模式优化版） */
     function getBoundaryScore(dir, head) {
         let nx = head.x + dir.dx;
         let ny = head.y + dir.dy;
         const isWallThrough = gameMode === 'wallThrough';
         const isStarving = Date.now() - lastFoodTime > FORCE_FOOD_TIMEOUT;
+        const snakeLength = snake.length;
         
         if (isStarving) return 0; // 紧急寻食时不考虑边界评分
         
@@ -507,17 +595,55 @@ document.addEventListener('DOMContentLoaded', () => {
             ny = (ny + gridSize) % gridSize;
         }
         
-        const snakeLength = snake.length;
-        const boundaryWeight = isWallThrough ? (snakeLength > 15 ? 0.9 : 0.8) : (snakeLength < 15 ? 0.5 : 0.8);
-        const centerWeight = 1 - boundaryWeight;
+        // 智能边界权重计算
+        const isLongSnake = snakeLength > 15;
+        const isVeryLongSnake = snakeLength > 25;
+        
+        let boundaryWeight, centerWeight;
+        if (isWallThrough) {
+            if (isVeryLongSnake) {
+                boundaryWeight = 0.95; // 超长蛇优先边界
+                centerWeight = 0.05;
+            } else if (isLongSnake) {
+                boundaryWeight = 0.85;
+                centerWeight = 0.15;
+            } else {
+                boundaryWeight = 0.7;
+                centerWeight = 0.3;
+            }
+        } else {
+            boundaryWeight = snakeLength < 15 ? 0.5 : 0.8;
+            centerWeight = 1 - boundaryWeight;
+        }
+        
         const boundaryDist = Math.min(nx, (gridSize-1)-nx, ny, (gridSize-1)-ny);
         const adjustedBoundaryDist = isWallThrough ? (6 - Math.min(boundaryDist, 6)) : boundaryDist;
         const centerDist = Math.abs(nx - (gridSize/2)) + Math.abs(ny - (gridSize/2));
         const isHeadingToEdge = boundaryDist < 3;
         const avoidsSelf = !snake.some(s => s.x === nx && s.y === ny);
-        const edgeBonus = isWallThrough && isHeadingToEdge ? (avoidsSelf ? 20 : 15) : 0;
         
-        return (adjustedBoundaryDist * boundaryWeight) + (centerDist * centerWeight) + edgeBonus;
+        // 智能边界奖励计算
+        let edgeBonus = 0;
+        if (isWallThrough && isHeadingToEdge) {
+            if (avoidsSelf) {
+                // 根据蛇长度调整边界奖励
+                if (isVeryLongSnake) {
+                    edgeBonus = 35; // 超长蛇在边界有更大优势
+                } else if (isLongSnake) {
+                    edgeBonus = 25;
+                } else {
+                    edgeBonus = 15;
+                }
+            } else {
+                edgeBonus = 10; // 即使有碰撞风险，边界也有一定价值
+            }
+        }
+        
+        // 考虑当前位置的战略价值
+        const currentBoundaryDist = Math.min(head.x, gridSize-1-head.x, head.y, gridSize-1-head.y);
+        const strategicBonus = isWallThrough && currentBoundaryDist < 2 && boundaryDist > 4 ? 10 : 0;
+        
+        return (adjustedBoundaryDist * boundaryWeight) + (centerDist * centerWeight) + edgeBonus + strategicBonus;
     }
     
     /** 寻找探索路径 */
@@ -634,11 +760,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return validDirections.length > 0 ? [validDirections[0].dir] : ['right'];
     }
     
-    /** 紧急逃生机制 */
+    /** 紧急逃生机制（穿墙模式优化版） */
     function aiEscape() {
         const head = snake[0];
         const isWallThrough = gameMode === 'wallThrough';
         const inLoop = isInLoop();
+        const snakeLength = snake.length;
+        const isLongSnake = snakeLength > 15;
+        const isVeryLongSnake = snakeLength > 25;
         const directions = [
             {dx: 0, dy: -1, dir: 'up'},
             {dx: 1, dy: 0, dir: 'right'},
@@ -673,11 +802,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 const originalDirectionHasCollision = snake.some(s => 
                     s.x === (head.x + dir.dx) && s.y === (head.y + dir.dy)
                 );
-                const loopBonus = inLoop && wrapped ? 100 : 0;
-                const wrapBonus = wrapped ? (originalDirectionHasCollision ? 50 : 30) + loopBonus : 0;
+                
+                // 智能穿墙奖励计算
+                let wrapBonus = 0;
+                let loopBonus = 0;
+                
+                if (wrapped) {
+                    // 根据蛇长度调整穿墙奖励
+                    if (isVeryLongSnake) {
+                        wrapBonus = originalDirectionHasCollision ? 80 : 60;
+                    } else if (isLongSnake) {
+                        wrapBonus = originalDirectionHasCollision ? 60 : 40;
+                    } else {
+                        wrapBonus = originalDirectionHasCollision ? 40 : 25;
+                    }
+                    
+                    // 闭环陷阱中的穿墙有额外奖励
+                    loopBonus = inLoop ? 120 : 0;
+                }
+                
+                // 考虑边界位置的战略价值
+                const boundaryDist = Math.min(pos.x, gridSize-1-pos.x, pos.y, gridSize-1-pos.y);
+                const boundaryBonus = isWallThrough && boundaryDist < 3 ? 15 : 0;
+                
+                // 路径安全性和空间权重
+                const pathSafety = nextPath.length > 0 ? 25 : 0;
+                const spaceWeight = space * (isVeryLongSnake ? 1.2 : 1.0);
+                
                 return {
                     ...dir,
-                    score: space + (nextPath.length > 0 ? 20 : 0) + wrapBonus
+                    score: spaceWeight + pathSafety + wrapBonus + loopBonus + boundaryBonus
                 };
             })
             .sort((a, b) => b.score - a.score);
@@ -909,7 +1063,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (document.activeElement.tagName !== 'BUTTON' && 
                     document.activeElement.tagName !== 'INPUT' && 
                     document.activeElement.tagName !== 'TEXTAREA') {
-                    gameRunning ? pauseGame() : startGame();
+                    if (gameRunning) {
+                        pauseGame();
+                    } else {
+                        if (gameInitialized) {
+                            resumeGame();
+                        } else {
+                            startGame();
+                        }
+                    }
                 }
                 break;
         }
@@ -1249,12 +1411,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (gameRunning) {
             console.log('Pausing game');
             pauseGame();
-        } else if (gameInitialized) {
-            console.log('Resuming game');
-            resumeGame();
         } else {
-            console.log('Starting new game');
-            startGame(); // 开始新游戏
+            if (gameInitialized) {
+                console.log('Resuming game');
+                resumeGame();
+            } else {
+                console.log('Starting new game');
+                startGame(); // 开始新游戏
+            }
         }
     });
     
