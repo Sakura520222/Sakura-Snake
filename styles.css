@@ -41,22 +41,20 @@ h1 {
     background-clip: text;
 }
 
-/* 主内容区域 - 默认电脑端布局 */
+/* 主内容区域 - 默认移动端布局 */
 .main-content {
     display: flex;
-    flex-direction: row;
-    gap: 30px;
-    align-items: flex-start;
-    justify-content: center;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
 }
 
 /* 画布容器 */
 .canvas-container {
-    flex: 1;
     display: flex;
     justify-content: center;
     align-items: center;
-    order: 1; /* 默认：画布在左侧 */
+    order: 2; /* 默认：画布在下面 */
 }
 
 /* 游戏信息区域 */
@@ -71,9 +69,9 @@ h1 {
     gap: 15px;
     border: 1px solid rgba(52, 152, 219, 0.2);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    min-width: 280px;
-    max-width: 320px;
-    order: 2; /* 默认：设置界面在右侧 */
+    max-width: 100%;
+    min-width: auto;
+    order: 1; /* 默认：设置界面在上面 */
 }
 
 /* 得分显示 */
