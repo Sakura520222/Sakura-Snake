@@ -266,6 +266,12 @@ h1 {
 
 /* 电脑端布局 - 确保设置界面在右侧 */
 @media (min-width: 768px) {
+    .game-container {
+        max-width: 900px;
+        margin: 20px auto;
+        padding: 25px;
+    }
+    
     .main-content {
         flex-direction: row !important;
         justify-content: center !important;
@@ -279,6 +285,7 @@ h1 {
         display: flex !important;
         justify-content: center !important;
         align-items: center !important;
+        max-width: none !important;
     }
     
     .game-info {
@@ -286,32 +293,59 @@ h1 {
         min-width: 280px !important;
         max-width: 320px !important;
         margin-left: 30px !important;
-        max-width: 320px !important;
-        min-width: auto !important;
+        padding: 20px !important;
+        width: auto !important;
+    }
+    
+    /* 电脑端按钮样式恢复 */
+    .difficulty-buttons {
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+    
+    .difficulty-btn {
+        width: auto !important;
+        flex: 1 !important;
+        min-width: 0 !important;
+    }
+    
+    .mode-buttons {
+        flex-direction: row !important;
+        gap: 8px !important;
+    }
+    
+    .mode-btn {
+        width: auto !important;
+        flex: 1 !important;
+        min-width: 0 !important;
     }
 }
 
-@media (max-width: 600px) {
+/* 移动端布局 - 确保在小屏幕上正确显示 */
+@media (max-width: 767px) {
     .game-container {
-        max-width: 450px;
+        max-width: 100%;
+        padding: 15px;
+        margin: 10px auto;
     }
     
     .main-content {
         flex-direction: column !important;
-        gap: 20px !important;
+        gap: 15px !important;
         align-items: center !important;
+        justify-content: flex-start !important;
     }
     
     .canvas-container {
         order: 2 !important; /* 移动端：画布在下面 */
         flex: none !important;
-    }
-    
-    .game-info {
-        max-width: 100% !important;
-        min-width: auto !important;
-        order: 1 !important; /* 移动端：设置界面在上面 */
-        margin-left: 0 !important;
+        width: 100%;
+        max-width: 400px;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 15px !important;
     }
     
     .mobile-controls {
@@ -323,6 +357,28 @@ h1 {
         grid-template-columns: 1fr 1fr 1fr !important;
         grid-template-rows: auto auto auto !important;
         gap: 10px !important;
+        margin-top: 0 !important;
+    }
+    
+    /* 移动端按钮样式调整 */
+    .difficulty-buttons {
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+    
+    .difficulty-btn {
+        width: 100% !important;
+        text-align: center !important;
+    }
+    
+    .mode-buttons {
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+    
+    .mode-btn {
+        width: 100% !important;
+        text-align: center !important;
     }
 }
 
