@@ -26,6 +26,26 @@
     <div class="game-container">
         <h1>贪吃蛇游戏</h1>
 
+        <!-- 状态指示器 -->
+        <div class="status-indicator">
+            <div class="status-item">
+                <span class="status-label">游戏状态:</span>
+                <span class="status-value" id="game-status">准备中</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">AI模式:</span>
+                <span class="status-value" id="ai-status">关闭</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">饥饿状态:</span>
+                <span class="status-value" id="hunger-status">正常</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">路径风险:</span>
+                <span class="status-value" id="risk-status">低</span>
+            </div>
+        </div>
+
         <!-- 玩法说明按钮 -->
         <div class="instructions-button-container">
             <button id="instructions-btn">玩法说明</button>

@@ -45,10 +45,84 @@ document.addEventListener('DOMContentLoaded', () => {
     let elapsedTime = 0; // 已经过的时间（毫秒）
     let timerInterval = null; // 计时器间隔ID
     
+    // 状态指示器元素
+    const gameStatusElement = document.getElementById('game-status');
+    const aiStatusElement = document.getElementById('ai-status');
+    const hungerStatusElement = document.getElementById('hunger-status');
+    const riskStatusElement = document.getElementById('risk-status');
+    
     /** 获取基础速度 */
     function getBaseSpeed() {
         // 使用独立的速度设置，不依赖于难度
         return gameSpeed;
+    }
+    
+    /** 更新状态指示器 */
+    function updateStatusIndicator() {
+        // 更新游戏状态
+        if (!gameInitialized) {
+            gameStatusElement.textContent = '准备中';
+            gameStatusElement.className = '';
+        } else if (gameRunning) {
+            gameStatusElement.textContent = '运行中';
+            gameStatusElement.className = 'running';
+        } else {
+            gameStatusElement.textContent = '暂停';
+            gameStatusElement.className = 'paused';
+        }
+        
+        // 更新AI状态
+        if (aiMode) {
+            aiStatusElement.textContent = '开启';
+            aiStatusElement.className = 'active';
+        } else {
+            aiStatusElement.textContent = '关闭';
+            aiStatusElement.className = '';
+        }
+        
+        // 更新饥饿状态
+        const timeSinceFood = Date.now() - lastFoodTime;
+        if (timeSinceFood > FORCE_FOOD_TIMEOUT) {
+            hungerStatusElement.textContent = '紧急';
+            hungerStatusElement.className = 'starving';
+        } else if (timeSinceFood > STARVING_THRESHOLD) {
+            hungerStatusElement.textContent = '饥饿';
+            hungerStatusElement.className = 'hungry';
+        } else {
+            hungerStatusElement.textContent = '正常';
+            hungerStatusElement.className = '';
+        }
+        
+        // 更新路径风险状态
+        const head = snake[0];
+        const directions = [
+            {dx: 0, dy: -1, dir: 'up'},
+            {dx: 1, dy: 0, dir: 'right'},
+            {dx: 0, dy: 1, dir: 'down'},
+            {dx: -1, dy: 0, dir: 'left'}
+        ];
+        
+        let riskLevel = 'low';
+        let riskCount = 0;
+        
+        // 检查四个方向的路径风险
+        for (const dir of directions) {
+            const path = [dir.dir];
+            if (isRiskyPath(path, false, 3)) {
+                riskCount++;
+            }
+        }
+        
+        if (riskCount >= 3) {
+            riskLevel = 'high';
+        } else if (riskCount >= 2) {
+            riskLevel = 'medium';
+        } else {
+            riskLevel = 'low';
+        }
+        
+        riskStatusElement.textContent = riskLevel === 'high' ? '高' : riskLevel === 'medium' ? '中' : '低';
+        riskStatusElement.className = riskLevel;
     }
     
     /** 绘制游戏界面（保留紧急寻食视觉提示） */
@@ -111,6 +185,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         scoreElement.textContent = score;
+        
+        // 更新状态指示器
+        updateStatusIndicator();
     }
     
     /** 检查位置安全性 */
@@ -1311,6 +1388,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // 停止计时器
         stopTimer();
         
+        // 更新状态指示器
+        gameStatusElement.textContent = '游戏结束';
+        gameStatusElement.className = 'game-over';
+        
         const deathReason = '碰撞死亡';
         
         const gameOverDiv = document.createElement('div');
@@ -1364,6 +1445,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // 开始计时器
         startTimer();
+        
+        // 更新状态指示器
+        updateStatusIndicator();
     }
     
     /** 暂停游戏 */
@@ -1374,6 +1458,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // 停止计时器
         stopTimer();
+        
+        // 更新状态指示器
+        updateStatusIndicator();
     }
     
     // 移动端控制（优化响应速度）
@@ -1424,7 +1511,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 键盘控制
     document.addEventListener('keydown', (e) => {
-        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Escape'].includes(e.key)) {
             e.preventDefault();
         }
         switch(e.key) {
@@ -1447,6 +1534,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                 }
+                break;
+            case 'Escape':
+                // ESC键防卡死功能：立即重置游戏（任何时候都可以使用）
+                console.log('ESC键触发防卡死重置');
+                
+                // 显示重置提示
+                showResetMessage();
+                
+                // 立即重置游戏
+                resetGame();
                 break;
         }
     });
@@ -1495,6 +1592,9 @@ document.addEventListener('DOMContentLoaded', () => {
         aiBtn.textContent = aiMode ? 'AI停止' : 'AI开始';
         aiBtn.style.backgroundColor = aiMode ? '#e74c3c' : '#9b59b6';
         console.log('AI button clicked, aiMode after:', aiMode);
+        
+        // 更新状态指示器
+        updateStatusIndicator();
     });
     
     // 添加调试日志以确认AI按钮事件监听器是否正常工作
@@ -1565,6 +1665,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // 重置并开始计时器
         resetTimer();
         startTimer();
+        
+        // 更新状态指示器
+        updateStatusIndicator();
     }
     
     // 玩法说明弹窗功能
@@ -1651,6 +1754,93 @@ document.addEventListener('DOMContentLoaded', () => {
         stopTimer();
         elapsedTime = 0;
         updateTimerDisplay();
+    }
+    
+    /** 显示重置提示消息 */
+    function showResetMessage() {
+        const resetDiv = document.createElement('div');
+        resetDiv.id = 'reset-message';
+        resetDiv.style.position = 'fixed';
+        resetDiv.style.top = '20%';
+        resetDiv.style.left = '50%';
+        resetDiv.style.transform = 'translateX(-50%)';
+        resetDiv.style.backgroundColor = 'rgba(231, 76, 60, 0.9)';
+        resetDiv.style.color = 'white';
+        resetDiv.style.padding = '15px 25px';
+        resetDiv.style.borderRadius = '8px';
+        resetDiv.style.fontSize = '16px';
+        resetDiv.style.fontWeight = 'bold';
+        resetDiv.style.zIndex = '1001';
+        resetDiv.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+        resetDiv.style.textAlign = 'center';
+        resetDiv.textContent = 'ESC键触发防卡死重置！游戏已重新开始';
+        
+        document.body.appendChild(resetDiv);
+        
+        // 3秒后自动消失
+        setTimeout(() => {
+            if (document.body.contains(resetDiv)) {
+                document.body.removeChild(resetDiv);
+            }
+        }, 3000);
+    }
+    
+    /** 重置游戏（防卡死功能） */
+    function resetGame() {
+        // 清除游戏循环
+        if (gameLoopId) {
+            clearInterval(gameLoopId);
+            gameLoopId = null;
+        }
+        
+        // 移除游戏结束弹窗（如果存在）
+        const gameOverDiv = document.querySelector('div[style*="z-index: 1000"]');
+        if (gameOverDiv && gameOverDiv.innerHTML.includes('游戏结束')) {
+            document.body.removeChild(gameOverDiv);
+        }
+        
+        // 重置游戏状态
+        gameRunning = false;
+        gameInitialized = false;
+        
+        // 重置蛇的位置和方向
+        snake = [{x: 10, y: 10}];
+        dx = 1;
+        dy = 0;
+        nextDx = 1;
+        nextDy = 0;
+        
+        // 重置分数和食物
+        score = 0;
+        foods = [];
+        lastFoodTime = Date.now();
+        
+        // 清空历史记录和危险位置
+        positionHistory.length = 0;
+        dangerousPositions.clear();
+        dangerousPositionsTimestamps.clear();
+        safePathPatterns.length = 0;
+        
+        // 重置按钮状态
+        startBtn.textContent = '开始游戏';
+        
+        // 重置AI模式
+        if (aiMode) {
+            aiMode = false;
+            aiBtn.textContent = 'AI开始';
+            aiBtn.style.backgroundColor = '#9b59b6';
+        }
+        
+        // 重置计时器
+        resetTimer();
+        
+        // 重新绘制游戏界面
+        draw();
+        
+        // 更新状态指示器
+        updateStatusIndicator();
+        
+        console.log('游戏已通过ESC键重置（包括游戏结束弹窗）');
     }
 });
 

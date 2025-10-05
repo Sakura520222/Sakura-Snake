@@ -31,7 +31,7 @@ body {
 h1 {
     text-align: center;
     color: #2c3e50;
-    margin-bottom: 25px;
+    margin-bottom: 15px;
     font-size: 2.2em;
     font-weight: 700;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -39,6 +39,117 @@ h1 {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+}
+
+/* 状态指示器 */
+.status-indicator {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 10px;
+    border: 1px solid rgba(52, 152, 219, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(5px);
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: rgba(248, 249, 250, 0.8);
+    border-radius: 6px;
+    border: 1px solid rgba(222, 226, 230, 0.5);
+    min-width: 120px;
+}
+
+.status-label {
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.9em;
+}
+
+.status-value {
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+}
+
+/* 游戏状态样式 */
+#game-status {
+    background: rgba(52, 152, 219, 0.1);
+    color: #3498db;
+}
+
+#game-status.running {
+    background: rgba(46, 204, 113, 0.2);
+    color: #27ae60;
+}
+
+#game-status.paused {
+    background: rgba(241, 196, 15, 0.2);
+    color: #f39c12;
+}
+
+#game-status.game-over {
+    background: rgba(231, 76, 60, 0.2);
+    color: #c0392b;
+}
+
+/* AI状态样式 */
+#ai-status {
+    background: rgba(155, 89, 182, 0.1);
+    color: #9b59b6;
+}
+
+#ai-status.active {
+    background: rgba(155, 89, 182, 0.3);
+    color: #8e44ad;
+}
+
+/* 饥饿状态样式 */
+#hunger-status {
+    background: rgba(46, 204, 113, 0.1);
+    color: #27ae60;
+}
+
+#hunger-status.hungry {
+    background: rgba(241, 196, 15, 0.2);
+    color: #f39c12;
+}
+
+#hunger-status.starving {
+    background: rgba(231, 76, 60, 0.2);
+    color: #c0392b;
+    animation: pulse 1s infinite;
+}
+
+/* 路径风险样式 */
+#risk-status {
+    background: rgba(46, 204, 113, 0.1);
+    color: #27ae60;
+}
+
+#risk-status.medium {
+    background: rgba(241, 196, 15, 0.2);
+    color: #f39c12;
+}
+
+#risk-status.high {
+    background: rgba(231, 76, 60, 0.2);
+    color: #c0392b;
+}
+
+/* 脉冲动画 */
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
 }
 
 /* 主内容区域 - 默认移动端布局 */
