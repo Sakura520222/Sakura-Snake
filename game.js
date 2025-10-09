@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const ctx = canvas.getContext('2d');
     const scoreElement = document.getElementById('score');
     const startBtn = document.getElementById('start-btn');
+    const speedSlider = document.getElementById('speed-slider');
+    const speedValue = document.getElementById('speed-value');
     
     const gridSize = 30;
     const tileSize = canvas.width / gridSize;
@@ -1555,6 +1557,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 difficulty = parseInt(btn.dataset.level);
                 document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
+                
+                // 根据难度级别自动调整速度滑条
+                const difficultySpeeds = {
+                    1: 150, // 简单
+                    2: 100, // 中等
+                    3: 70,  // 困难
+                    4: 50   // 疯狂
+                };
+                
+                const newSpeed = difficultySpeeds[difficulty];
+                gameSpeed = newSpeed;
+                speedSlider.value = newSpeed;
+                speedValue.textContent = newSpeed;
             }
         });
     });
@@ -1601,9 +1616,6 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('AI button created');
     
     // 速度控制
-    const speedSlider = document.getElementById('speed-slider');
-    const speedValue = document.getElementById('speed-value');
-    
     speedSlider.addEventListener('input', () => {
         gameSpeed = parseInt(speedSlider.value);
         speedValue.textContent = gameSpeed;
