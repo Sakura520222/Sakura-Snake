@@ -1,3 +1,16 @@
+# Sakura Snake - Apache License 2.0 / 小樱贪吃蛇 - Apache 许可证 2.0
+# ================================================================
+#
+# Project / 项目: Sakura Snake - 小樱贪吃蛇
+# Author / 作者: Sakura520222
+# Repository / 仓库: https://github.com/Sakura520222/Sakura-Snake
+#
+# This project is licensed under the Apache License, Version 2.0
+# 本项目采用 Apache 许可证 2.0 版本
+# See the full license text below for details / 详情请参阅下方完整许可证文本
+#
+# ================================================================
+
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -186,7 +199,7 @@
       same "printed page" as the copyright notice for easier
       identification within third-party archives.
 
-   Copyright [yyyy] [name of copyright owner]
+   Copyright 2025 Sakura520222
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
