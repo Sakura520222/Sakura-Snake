@@ -2,8 +2,6 @@
 
 <div align="center">
 
-![Sakura Snake Banner](https://via.placeholder.com/800x200/FF6B95/FFFFFF?text=Sakura+Snake+贪吃蛇游戏)
-
 > 🌸 **一个功能丰富的现代化贪吃蛇游戏** 🌸
 
 支持网页版和桌面版，具有AI辅助、多模式、响应式设计等特色功能
