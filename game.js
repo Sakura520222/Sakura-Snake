@@ -1,4 +1,4 @@
-/* 贪吃蛇游戏（恢复原始A* AI + 保留紧急寻食） */
+/* 贪吃蛇游戏 */
 document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
