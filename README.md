@@ -9,9 +9,9 @@
 [![在线演示](https://img.shields.io/badge/🌐_在线演示-点击体验-00B4D8)](https://tcs.firefly520.top)
 [![官方网站](https://img.shields.io/badge/🏠_官方网站-萤宝百宝箱-FF6B6B)](https://box.firefly520.top/)
 [![版本](https://img.shields.io/badge/🚀_版本-1.0-38B000)](https://github.com/Sakura520222/Sakura-Snake)
+[![GitHub Stars](https://img.shields.io/github/stars/Sakura520222/Sakura-Snake?style=social&label=⭐)](https://github.com/Sakura520222/Sakura-Snake)
+[![英文文档](https://img.shields.io/badge/🌐_English_Documentation-Read_Now-FF6B6B)](README_EN.md)
 [![许可证](https://img.shields.io/badge/📄_许可证-MIT-FF6B6B)](LICENSE)
-[![Python](https://img.shields.io/badge/Python-3.6+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?logo=javascript&logoColor=black)](https://developer.mozilla.org/)
 
 </div>
 
