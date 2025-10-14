@@ -47,6 +47,21 @@ document.addEventListener('DOMContentLoaded', () => {
     let elapsedTime = 0; // 已经过的时间（毫秒）
     let timerInterval = null; // 计时器间隔ID
     
+    // 连击系统变量
+    let comboCount = 0; // 当前连击数
+    let lastFoodEatenTime = 0; // 上次吃食物时间
+    let maxCombo = 0; // 最大连击记录
+    const COMBO_TIMEOUT = 3000; // 连击超时时间（3秒）
+    const COMBO_RESET_TIMEOUT = 5000; // 连击重置时间（5秒）
+    
+    // 得分动画系统
+    const scoreAnimations = []; // 得分动画数组
+    const comboAnimations = []; // 连击动画数组
+    
+    // 游戏统计
+    let totalFoodEaten = 0; // 总食物数量
+    let scoreHistory = []; // 得分历史记录
+    
     // 状态指示器元素
     const gameStatusElement = document.getElementById('game-status');
     const aiStatusElement = document.getElementById('ai-status');
@@ -57,6 +72,157 @@ document.addEventListener('DOMContentLoaded', () => {
     function getBaseSpeed() {
         // 使用独立的速度设置，不依赖于难度
         return gameSpeed;
+    }
+    
+    /** 更新连击系统 */
+    function updateComboSystem() {
+        const currentTime = Date.now();
+        
+        // 检查是否需要重置连击
+        if (comboCount > 0 && currentTime - lastFoodEatenTime > COMBO_RESET_TIMEOUT) {
+            // 显示连击重置动画
+            addComboAnimation('连击重置!', {x: canvas.width / 2, y: canvas.height / 2}, '#e74c3c');
+            comboCount = 0;
+        }
+    }
+    
+    /** 获取连击倍数 */
+    function getComboMultiplier() {
+        if (comboCount >= 15) return 3;
+        if (comboCount >= 10) return 2.5;
+        if (comboCount >= 5) return 2;
+        if (comboCount >= 3) return 1.5;
+        return 1;
+    }
+    
+    /** 计算得分 */
+    function calculateScore() {
+        const baseScore = 10;
+        const comboMultiplier = getComboMultiplier();
+        return Math.floor(baseScore * difficulty * comboMultiplier);
+    }
+    
+    /** 添加得分动画 */
+    function addScoreAnimation(points, position) {
+        const animation = {
+            text: `+${formatNumber(points)}`,
+            x: position.x * tileSize + tileSize / 2,
+            y: position.y * tileSize + tileSize / 2,
+            alpha: 1,
+            scale: 1,
+            color: getScoreColor(points),
+            startTime: Date.now(),
+            duration: 1000
+        };
+        scoreAnimations.push(animation);
+    }
+    
+    /** 添加连击动画 */
+    function addComboAnimation(text, position, color = '#f1c40f') {
+        const animation = {
+            text: text,
+            x: position.x,
+            y: position.y,
+            alpha: 1,
+            scale: 1,
+            color: color,
+            startTime: Date.now(),
+            duration: 1500
+        };
+        comboAnimations.push(animation);
+    }
+    
+    /** 格式化数字（千位分隔符） */
+    function formatNumber(num) {
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    }
+    
+    /** 根据得分获取颜色 */
+    function getScoreColor(points) {
+        if (points >= 100) return '#ff6b6b';
+        if (points >= 50) return '#ffa726';
+        if (points >= 30) return '#66bb6a';
+        return '#42a5f5';
+    }
+    
+    /** 根据连击数获取颜色 */
+    function getComboColor(combo) {
+        if (combo >= 15) return '#ff00ff'; // 紫色
+        if (combo >= 10) return '#ffd700'; // 金色
+        if (combo >= 5) return '#ffa500';  // 橙色
+        if (combo >= 3) return '#ffff00';  // 黄色
+        return '#00ff00';                  // 绿色
+    }
+    
+    /** 更新得分动画 */
+    function updateScoreAnimations() {
+        const currentTime = Date.now();
+        
+        for (let i = scoreAnimations.length - 1; i >= 0; i--) {
+            const anim = scoreAnimations[i];
+            const elapsed = currentTime - anim.startTime;
+            const progress = elapsed / anim.duration;
+            
+            if (progress >= 1) {
+                scoreAnimations.splice(i, 1);
+                continue;
+            }
+            
+            // 更新动画属性
+            anim.alpha = 1 - progress;
+            anim.scale = 1 + progress * 0.5;
+            anim.y -= 2; // 向上浮动
+            
+            // 绘制得分动画
+            ctx.save();
+            ctx.globalAlpha = anim.alpha;
+            ctx.fillStyle = anim.color;
+            ctx.font = `${Math.floor(16 * anim.scale)}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(anim.text, anim.x, anim.y);
+            
+            // 添加阴影效果
+            ctx.shadowColor = anim.color;
+            ctx.shadowBlur = 10;
+            ctx.fillText(anim.text, anim.x, anim.y);
+            ctx.restore();
+        }
+    }
+    
+    /** 更新连击动画 */
+    function updateComboAnimations() {
+        const currentTime = Date.now();
+        
+        for (let i = comboAnimations.length - 1; i >= 0; i--) {
+            const anim = comboAnimations[i];
+            const elapsed = currentTime - anim.startTime;
+            const progress = elapsed / anim.duration;
+            
+            if (progress >= 1) {
+                comboAnimations.splice(i, 1);
+                continue;
+            }
+            
+            // 更新动画属性
+            anim.alpha = 1 - progress;
+            anim.scale = 1 + progress * 0.8;
+            
+            // 绘制连击动画
+            ctx.save();
+            ctx.globalAlpha = anim.alpha;
+            ctx.fillStyle = anim.color;
+            ctx.font = `bold ${Math.floor(20 * anim.scale)}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // 脉冲效果
+            const pulse = Math.sin(progress * Math.PI * 4) * 0.3 + 1;
+            ctx.shadowColor = anim.color;
+            ctx.shadowBlur = 15 * pulse;
+            ctx.fillText(anim.text, anim.x, anim.y);
+            ctx.restore();
+        }
     }
     
     /** 更新状态指示器 */
@@ -186,7 +352,31 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fillText(`⚠️ 紧急寻食：剩余${remainingTime}秒`, 10, 20);
         }
         
-        scoreElement.textContent = score;
+        // 更新连击系统
+        updateComboSystem();
+        
+        // 更新得分动画
+        updateScoreAnimations();
+        
+        // 更新连击动画
+        updateComboAnimations();
+        
+        // 更新得分显示（带千位分隔符和动态样式）
+        scoreElement.textContent = formatNumber(score);
+        
+        // 动态样式效果
+        if (score >= 10000) {
+            scoreElement.classList.add('ultra-score');
+            scoreElement.classList.remove('high-score');
+        } else if (score >= 5000) {
+            scoreElement.classList.add('high-score');
+            scoreElement.classList.remove('ultra-score');
+        } else {
+            scoreElement.classList.remove('high-score', 'ultra-score');
+        }
+        
+        // 添加悬停提示
+        scoreElement.title = `当前得分: ${formatNumber(score)}\n最大连击: ${maxCombo}\n总食物: ${totalFoodEaten}`;
         
         // 更新状态指示器
         updateStatusIndicator();
@@ -1266,7 +1456,38 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const foodIndex = foods.findIndex(f => f.x === head.x && f.y === head.y);
         if (foodIndex !== -1) {
-            score += 10 * difficulty;
+            // 连击系统逻辑
+            const currentTime = Date.now();
+            if (currentTime - lastFoodEatenTime <= COMBO_TIMEOUT) {
+                comboCount++;
+                // 显示连击动画
+                addComboAnimation(`${comboCount}连击!`, {x: head.x * tileSize + tileSize / 2, y: head.y * tileSize + tileSize / 2}, getComboColor(comboCount));
+            } else {
+                comboCount = 1; // 重置连击
+            }
+            lastFoodEatenTime = currentTime;
+            
+            // 更新最大连击记录
+            if (comboCount > maxCombo) {
+                maxCombo = comboCount;
+            }
+            
+            // 计算得分（包含连击奖励）
+            const pointsEarned = calculateScore();
+            score += pointsEarned;
+            totalFoodEaten++;
+            
+            // 添加得分动画
+            addScoreAnimation(pointsEarned, head);
+            
+            // 记录得分历史
+            scoreHistory.push({
+                score: pointsEarned,
+                time: elapsedTime,
+                combo: comboCount,
+                multiplier: getComboMultiplier()
+            });
+            
             foods.splice(foodIndex, 1);
             lastFoodTime = Date.now(); // 重置紧急寻食计时
             positionHistory.length = 0;
@@ -1379,7 +1600,7 @@ document.addEventListener('DOMContentLoaded', () => {
         draw();
     }
     
-    /** 游戏结束处理（显示紧急寻食失败原因） */
+    /** 游戏结束处理（显示详细统计信息） */
     function gameOver() {
         clearInterval(gameLoopId);
         gameRunning = false;
@@ -1396,31 +1617,94 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const deathReason = '碰撞死亡';
         
+        // 计算游戏统计信息
+        const gameTime = elapsedTime / 1000; // 转换为秒
+        const minutes = Math.floor(gameTime / 60);
+        const seconds = Math.floor(gameTime % 60);
+        const scorePerMinute = gameTime > 0 ? Math.round(score / (gameTime / 60)) : 0;
+        const foodPerMinute = gameTime > 0 ? Math.round(totalFoodEaten / (gameTime / 60)) : 0;
+        
         const gameOverDiv = document.createElement('div');
         gameOverDiv.style.position = 'fixed';
         gameOverDiv.style.top = '50%';
         gameOverDiv.style.left = '50%';
         gameOverDiv.style.transform = 'translate(-50%, -50%)';
-        gameOverDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+        gameOverDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
         gameOverDiv.style.padding = '30px';
-        gameOverDiv.style.borderRadius = '10px';
+        gameOverDiv.style.borderRadius = '15px';
         gameOverDiv.style.color = 'white';
         gameOverDiv.style.textAlign = 'center';
         gameOverDiv.style.zIndex = '1000';
-        gameOverDiv.style.width = '300px';
+        gameOverDiv.style.width = '500px';
+        gameOverDiv.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.5)';
+        gameOverDiv.style.border = '2px solid rgba(255, 255, 255, 0.1)';
         
         gameOverDiv.innerHTML = `
-            <h2 style='margin-top: 0; color: #e74c3c;'>游戏结束！</h2>
-            <p style='font-size: 18px;'>最终得分: <span style='color: #f1c40f; font-weight: bold;'>${score}</span></p>
-            <p>死亡原因: ${deathReason}</p>
-            <p>难度: ${['简单', '中等', '困难', '疯狂'][difficulty - 1]}</p>
-            <p>模式: ${gameMode === 'normal' ? '普通模式' : '穿墙模式'}</p>
-            <p>游戏时间: ${document.getElementById('timer').textContent}</p>
-            <button id='restart-btn' style='margin-top: 20px; padding: 10px 20px; background-color: #2ecc71; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;'>重新开始</button>
+            <h2 style='margin-top: 0; color: #e74c3c; font-size: 28px; margin-bottom: 20px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);'>游戏结束！</h2>
+            
+            <div style='display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;'>
+                <div style='background: linear-gradient(135deg, rgba(241, 196, 15, 0.2), rgba(243, 156, 18, 0.2)); padding: 15px; border-radius: 10px; border: 1px solid rgba(241, 196, 15, 0.3);'>
+                    <div style='font-size: 14px; color: #f1c40f; margin-bottom: 5px;'>最终得分</div>
+                    <div style='font-size: 32px; font-weight: bold; color: #f1c40f; text-shadow: 0 2px 4px rgba(0,0,0,0.5);'>${formatNumber(score)}</div>
+                </div>
+                
+                <div style='background: linear-gradient(135deg, rgba(52, 152, 219, 0.2), rgba(41, 128, 185, 0.2)); padding: 15px; border-radius: 10px; border: 1px solid rgba(52, 152, 219, 0.3);'>
+                    <div style='font-size: 14px; color: #3498db; margin-bottom: 5px;'>游戏时间</div>
+                    <div style='font-size: 24px; font-weight: bold; color: #3498db;'>${minutes}:${seconds.toString().padStart(2, '0')}</div>
+                </div>
+                
+                <div style='background: linear-gradient(135deg, rgba(46, 204, 113, 0.2), rgba(39, 174, 96, 0.2)); padding: 15px; border-radius: 10px; border: 1px solid rgba(46, 204, 113, 0.3);'>
+                    <div style='font-size: 14px; color: #2ecc71; margin-bottom: 5px;'>总食物数量</div>
+                    <div style='font-size: 24px; font-weight: bold; color: #2ecc71;'>${totalFoodEaten}</div>
+                </div>
+                
+                <div style='background: linear-gradient(135deg, rgba(155, 89, 182, 0.2), rgba(142, 68, 173, 0.2)); padding: 15px; border-radius: 10px; border: 1px solid rgba(155, 89, 182, 0.3);'>
+                    <div style='font-size: 14px; color: #9b59b6; margin-bottom: 5px;'>最大连击</div>
+                    <div style='font-size: 24px; font-weight: bold; color: #9b59b6;'>${maxCombo}</div>
+                </div>
+                
+                <div style='background: linear-gradient(135deg, rgba(231, 76, 60, 0.2), rgba(192, 57, 43, 0.2)); padding: 15px; border-radius: 10px; border: 1px solid rgba(231, 76, 60, 0.3);'>
+                    <div style='font-size: 14px; color: #e74c3c; margin-bottom: 5px;'>每分钟得分</div>
+                    <div style='font-size: 20px; font-weight: bold; color: #e74c3c;'>${formatNumber(scorePerMinute)}</div>
+                </div>
+                
+                <div style='background: linear-gradient(135deg, rgba(230, 126, 34, 0.2), rgba(211, 84, 0, 0.2)); padding: 15px; border-radius: 10px; border: 1px solid rgba(230, 126, 34, 0.3);'>
+                    <div style='font-size: 14px; color: #e67e22; margin-bottom: 5px;'>每分钟食物</div>
+                    <div style='font-size: 20px; font-weight: bold; color: #e67e22;'>${foodPerMinute}</div>
+                </div>
+            </div>
+            
+            <div style='display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;'>
+                <div style='background: rgba(255, 255, 255, 0.1); padding: 12px; border-radius: 8px;'>
+                    <div style='font-size: 12px; color: #bdc3c7; margin-bottom: 3px;'>难度</div>
+                    <div style='font-size: 16px; font-weight: bold; color: white;'>${['简单', '中等', '困难', '疯狂'][difficulty - 1]}</div>
+                </div>
+                
+                <div style='background: rgba(255, 255, 255, 0.1); padding: 12px; border-radius: 8px;'>
+                    <div style='font-size: 12px; color: #bdc3c7; margin-bottom: 3px;'>模式</div>
+                    <div style='font-size: 16px; font-weight: bold; color: white;'>${gameMode === 'normal' ? '普通模式' : '穿墙模式'}</div>
+                </div>
+            </div>
+            
+            <p style='color: #95a5a6; font-size: 14px; margin-bottom: 20px;'>死亡原因: ${deathReason}</p>
+            
+            <button id='restart-btn' style='margin-top: 10px; padding: 12px 30px; background: linear-gradient(135deg, #2ecc71, #27ae60); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; transition: all 0.3s; box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);'>重新开始</button>
         `;
         
         document.body.appendChild(gameOverDiv);
-        document.getElementById('restart-btn').addEventListener('click', () => {
+        
+        // 添加按钮悬停效果
+        const restartBtn = document.getElementById('restart-btn');
+        restartBtn.addEventListener('mouseenter', () => {
+            restartBtn.style.transform = 'translateY(-2px)';
+            restartBtn.style.boxShadow = '0 6px 20px rgba(46, 204, 113, 0.5)';
+        });
+        restartBtn.addEventListener('mouseleave', () => {
+            restartBtn.style.transform = 'translateY(0)';
+            restartBtn.style.boxShadow = '0 4px 15px rgba(46, 204, 113, 0.3)';
+        });
+        
+        restartBtn.addEventListener('click', () => {
             document.body.removeChild(gameOverDiv);
             startGame();
         });
@@ -1729,14 +2013,83 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
+    /** 智能格式化时间 */
+    function formatTime(milliseconds) {
+        const totalSeconds = Math.floor(milliseconds / 1000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        const ms = Math.floor((milliseconds % 1000) / 10);
+        
+        if (hours > 0) {
+            // 超过1小时：显示小时/分钟/秒
+            return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        } else if (minutes > 0) {
+            // 1小时内：显示分钟和秒
+            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        } else {
+            // 1分钟内：显示秒和毫秒
+            return `${seconds}.${ms.toString().padStart(2, '0')}s`;
+        }
+    }
+    
+    /** 获取时间显示颜色 */
+    function getTimeColor(milliseconds) {
+        const minutes = Math.floor(milliseconds / 60000);
+        if (minutes >= 30) return '#ff6b6b'; // 红色 - 长时间游戏
+        if (minutes >= 15) return '#ffa726'; // 橙色
+        if (minutes >= 5) return '#66bb6a';  // 绿色
+        return '#42a5f5';                    // 蓝色
+    }
+    
+    /** 获取时间字体大小 */
+    function getTimeFontSize(milliseconds) {
+        const minutes = Math.floor(milliseconds / 60000);
+        if (minutes >= 30) return '1.4em'; // 大字体
+        if (minutes >= 15) return '1.3em'; // 中等字体
+        return '1.2em';                   // 正常字体
+    }
+    
     /** 更新计时器显示 */
     function updateTimerDisplay() {
         const timerElement = document.getElementById('timer');
         if (timerElement) {
-            const totalSeconds = Math.floor(elapsedTime / 1000);
-            const minutes = Math.floor(totalSeconds / 60);
-            const seconds = totalSeconds % 60;
-            timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            const time = formatTime(elapsedTime);
+            timerElement.textContent = time;
+            
+            // 动态样式
+            timerElement.style.color = getTimeColor(elapsedTime);
+            timerElement.style.fontSize = getTimeFontSize(elapsedTime);
+            
+            // 长时间游戏脉冲效果
+            const minutes = Math.floor(elapsedTime / 60000);
+            if (minutes >= 15) {
+                const pulse = Math.sin(Date.now() * 0.001) * 0.3 + 1;
+                timerElement.style.transform = `scale(${pulse})`;
+                timerElement.style.fontWeight = 'bold';
+                
+                // 添加阴影效果
+                timerElement.style.textShadow = minutes >= 30 
+                    ? '0 0 10px rgba(255, 107, 107, 0.7)'  // 红色阴影
+                    : '0 0 8px rgba(255, 167, 38, 0.5)';   // 橙色阴影
+                
+                // 添加CSS类用于长时间游戏特效
+                if (minutes >= 30) {
+                    timerElement.classList.add('very-long-game');
+                    timerElement.classList.remove('long-game');
+                } else {
+                    timerElement.classList.add('long-game');
+                    timerElement.classList.remove('very-long-game');
+                }
+            } else {
+                timerElement.style.transform = 'scale(1)';
+                timerElement.style.fontWeight = 'normal';
+                timerElement.style.textShadow = 'none';
+                timerElement.classList.remove('long-game', 'very-long-game');
+            }
+            
+            // 添加悬停提示
+            timerElement.title = `游戏时间: ${time}\n点击查看详细统计`;
         }
     }
     

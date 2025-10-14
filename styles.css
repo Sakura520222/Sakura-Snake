@@ -185,15 +185,159 @@ h1 {
     order: 1; /* 默认：设置界面在上面 */
 }
 
-/* 得分显示 */
+/* 得分显示 - 优化样式 */
 #score {
     font-weight: bold;
     color: #e74c3c;
+    font-size: 1.4em;
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.15), rgba(231, 76, 60, 0.25));
+    padding: 8px 16px;
+    border-radius: 12px;
+    border: 2px solid rgba(231, 76, 60, 0.3);
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.2);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    font-family: 'Courier New', monospace;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* 得分悬停效果 */
+#score:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(231, 76, 60, 0.3);
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.2), rgba(231, 76, 60, 0.3));
+}
+
+/* 高得分特效 */
+#score.high-score {
+    background: linear-gradient(135deg, rgba(241, 196, 15, 0.2), rgba(243, 156, 18, 0.3));
+    border-color: rgba(241, 196, 15, 0.4);
+    color: #f1c40f;
+    animation: goldPulse 2s infinite;
+}
+
+#score.ultra-score {
+    background: linear-gradient(135deg, rgba(155, 89, 182, 0.2), rgba(142, 68, 173, 0.3));
+    border-color: rgba(155, 89, 182, 0.4);
+    color: #9b59b6;
+    animation: purplePulse 1.5s infinite;
+}
+
+/* 时间显示 - 优化样式 */
+#timer {
+    font-weight: bold;
+    color: #3498db;
+    font-size: 1.3em;
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.15), rgba(52, 152, 219, 0.25));
+    padding: 8px 16px;
+    border-radius: 12px;
+    border: 2px solid rgba(52, 152, 219, 0.3);
+    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.2);
+    transition: all 0.3s ease;
+    font-family: 'Courier New', monospace;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    letter-spacing: 1px;
+}
+
+/* 时间悬停效果 */
+#timer:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.3);
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.2), rgba(52, 152, 219, 0.3));
+}
+
+/* 长时间游戏特效 */
+#timer.long-game {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.2), rgba(39, 174, 96, 0.3));
+    border-color: rgba(46, 204, 113, 0.4);
+    color: #2ecc71;
+    animation: greenPulse 3s infinite;
+}
+
+#timer.very-long-game {
+    background: linear-gradient(135deg, rgba(230, 126, 34, 0.2), rgba(211, 84, 0, 0.3));
+    border-color: rgba(230, 126, 34, 0.4);
+    color: #e67e22;
+    animation: orangePulse 2s infinite;
+}
+
+/* 脉冲动画 */
+@keyframes goldPulse {
+    0% { box-shadow: 0 4px 15px rgba(241, 196, 15, 0.3); }
+    50% { box-shadow: 0 6px 25px rgba(241, 196, 15, 0.6); }
+    100% { box-shadow: 0 4px 15px rgba(241, 196, 15, 0.3); }
+}
+
+@keyframes purplePulse {
+    0% { box-shadow: 0 4px 15px rgba(155, 89, 182, 0.3); }
+    50% { box-shadow: 0 8px 30px rgba(155, 89, 182, 0.8); }
+    100% { box-shadow: 0 4px 15px rgba(155, 89, 182, 0.3); }
+}
+
+@keyframes greenPulse {
+    0% { box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3); }
+    50% { box-shadow: 0 6px 20px rgba(46, 204, 113, 0.5); }
+    100% { box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3); }
+}
+
+@keyframes orangePulse {
+    0% { box-shadow: 0 4px 15px rgba(230, 126, 34, 0.3); }
+    50% { box-shadow: 0 8px 25px rgba(230, 126, 34, 0.7); }
+    100% { box-shadow: 0 4px 15px rgba(230, 126, 34, 0.3); }
+}
+
+/* 得分动画容器 */
+.score-animation-container {
+    position: absolute;
+    pointer-events: none;
+    z-index: 100;
+}
+
+.score-animation {
+    position: absolute;
+    font-weight: bold;
     font-size: 1.2em;
-    background: rgba(231, 76, 60, 0.1);
-    padding: 4px 8px;
-    border-radius: 6px;
-    border: 1px solid rgba(231, 76, 60, 0.2);
+    color: #f1c40f;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    animation: scoreFloat 1s ease-out forwards;
+    white-space: nowrap;
+}
+
+.combo-animation {
+    position: absolute;
+    font-weight: bold;
+    font-size: 1.4em;
+    color: #9b59b6;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+    animation: comboPulse 1.5s ease-out forwards;
+    white-space: nowrap;
+}
+
+@keyframes scoreFloat {
+    0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-40px) scale(1.2);
+    }
+}
+
+@keyframes comboPulse {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.5);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.2);
+    }
 }
 
 /* 难度按钮 */
