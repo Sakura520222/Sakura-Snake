@@ -7,6 +7,7 @@
 支持网页版和桌面版，具有AI辅助、多模式、响应式设计等特色功能
 
 [![在线演示](https://img.shields.io/badge/🌐_在线演示-点击体验-00B4D8)](https://tcs.firefly520.top)
+[![官方网站](https://img.shields.io/badge/🏠_官方网站-萤宝百宝箱-FF6B6B)](https://box.firefly520.top/)
 [![版本](https://img.shields.io/badge/🚀_版本-1.0-38B000)](https://github.com/Sakura520222/Sakura-Snake)
 [![许可证](https://img.shields.io/badge/📄_许可证-MIT-FF6B6B)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.6+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
